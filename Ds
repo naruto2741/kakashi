@@ -1,0 +1,439 @@
+PRACTICAL NO:1
+Couchdb database --- rscript
+Install couchdb first 
+Rscript code 
+install.packages('sofa')
+#devtools::install_github("ropensci/sofa")
+library('sofa')
+#create connection object
+x<-Cushion$new()
+#to check whether object created
+x$ping()
+#create database ty
+db_create(x,dbname = 'ty')
+db_list(x)
+#create json doc
+doc1<-'{"rollno":"01","name":"ABC","GRADE":"A"}'
+doc_create(x,doc1,dbname = "ty",docid = "a_1")
+doc2<-'{"rollno":"02","name":"PQR","GRADE":"A"}'
+doc_create(x,doc2,dbname = "ty",docid = "a_2")
+doc3<-'{"rollno":"03","name":"xyz","GRADE":"B","REMARK":"PASS"}'
+doc_create(x,doc3,dbname = "ty",docid = "a_3")
+#CHANGES FEED
+db_changes(x,"ty")
+#search for id > null so all docs will display
+db_query(x,dbname = "ty",
+ selector = list('_id'=list('$gt'=NULL)))$docs
+#search for students with grade is A
+db_query(x,dbname = "ty",selector = list(GRADE="A"))$docs
+#search for students with remark =pass
+db_query(x,dbname = "ty",selector = list(REMARK="PASS"))$docs
+#return only certain fields where rollno>2
+db_query(x,dbname = "ty",selector = list(rollno=list('$gt'='02')),fields=c("name","GRADE"))$docs
+#convert the result of a query into a data frame using jsonlite
+library("jsonlite")
+res<-db_query(x,dbname = "ty",selector = list('_id'=list('$gt'=NULL)),fields=c("name","rollno","GRADE","REMARK"),as="json")
+#display json doc
+fromJSON(res)$docs
+#doc_delete(cushion,dbname,docid)
+doc_delete(x,dbname = "ty",docid = "a_2")
+doc_get(x,dbname = "ty",docid = "a_2")
+doc2<-'{"name":"Sdrink","beer":"TEST","note":"yummy","note2":"yay"}'
+doc_update(x,dbname = "ty",doc=doc2,docid="a_3",rev = "3-b1fb56db955b142c6efd3b3c52fe9e1b")
+doc3<-'{"rollno":"01",
+"name":"UZMA",
+"GRADE":"A"}'
+doc_update(x,dbname = "ty",doc=doc3,docid = "a_1",rev = "1-be7c98bddf8ea7c46f4f401ff387593d")
+
+AIM: Practical of Principal Component Analysis(PCA).
+data_iris <- iris[1:4]
+Cov_data <- cov(data_iris )
+# Find out the eigenvectors and eigenvalues using the covariance matrix
+Eigen_data <- eigen(Cov_data)
+# Using the inbuilt function
+PCA_data <- princomp(data_iris ,cor="False")
+# Let’s now compare the output variances
+Eigen_data$values
+PCA_data$sdev^2
+PCA_data$loadings[,1:4]
+Eigen_data$vectors
+summary(PCA_data)
+biplot (PCA_data)
+screeplot(PCA_data, type="lines")
+#Select the first principal component for the second model
+model2 = PCA_data$loadings[,1]
+#For the second model, we need to calculate scores by multiplying our loadings with the data
+model2_scores <- as.matrix(data_iris) %*% model2
+#Loading libraries for naiveBayes model
+library(class)
+install.packages("e1071")
+library(e1071)
+#Fitting the first model over the entire data
+mod1<-naiveBayes(iris[,1:4], iris[,5])
+#Fitting the second model using the first principal component
+mod2<-naiveBayes(model2_scores, iris[,5])
+# Accuracy for the first model
+table(predict(mod1, iris[,1:4]), iris[,5])
+# Accuracy for the second model
+table(predict(mod2, model2_scores), iris[,5])
+
+
+Practical of Clustering
+install.packages("ggplot2")
+library(ggplot2)
+scatter <- ggplot(data=iris, aes(x = Sepal.Length, y = Sepal.Width)) 
+scatter + geom_point(aes(color=Species, shape=Species)) +
+ theme_bw()+
+ xlab("Sepal Length") + ylab("Sepal Width") +
+ ggtitle("Sepal Length-Width")
+ggplot(data=iris, aes(Sepal.Length, fill = Species))+ 
+ theme_bw()+
+ geom_density(alpha=0.25)+
+ labs(x = "Sepal.Length", title="Species vs Sepal Length")
+vol <- ggplot(data=iris, aes(x = Sepal.Length))
+vol + stat_density(aes(ymax = ..density.., ymin = -..density.., 
+ fill = Species, color = Species), 
+ geom = "ribbon", position = "identity") +
+ facet_grid(. ~ Species) + coord_flip() + theme_bw()+labs(x = "Sepal Length", 
+title="Species vs Sepal Length")
+vol <- ggplot(data=iris, aes(x = Sepal.Width))
+vol + stat_density(aes(ymax = ..density.., ymin = -..density.., 
+ fill = Species, color = Species), 
+ geom = "ribbon", position = "identity") +
+ facet_grid(. ~ Species) + coord_flip() + theme_bw()+labs(x = "Sepal Width", 
+title="Species vs Sepal Width")
+irisData <- iris[,1:4]
+totalwSS<-c()
+for (i in 1:15)
+{
+ clusterIRIS <- kmeans(irisData, centers=i) 
+ totalwSS[i]<-clusterIRIS$tot.withinss 
+}
+plot(x=1:15, # x= No of clusters, 1 to 15
+ y=totalwSS, # tot_wss for each
+ type="b", # Draw both points as also connect them
+ xlab="Number of Clusters",
+ ylab="Within groups sum-of-squares")
+install.packages("NbClust")
+library(NbClust)
+par(mar = c(2,2,2,2)) 
+nb <- NbClust(irisData, method = "kmeans")
+hist(nb$Best.nc[1,], breaks = 15, main="Histogram for Number of Clusters")
+install.packages("vegan")
+library(vegan) 
+modelData <- cascadeKM(irisData, 1, 10, iter = 100) # Test for clusters 1 to 10
+plot(modelData, sortg = TRUE)
+modelData$results[2,]
+which.max(modelData$results[2,])
+library(cluster)
+cl <- kmeans(iris[,-5], 2)
+dis <- dist(iris[,-5])^2
+sil = silhouette (cl$cluster, dis)
+plot(sil, main = "Clustering Data with Silhoutte plot using 2 Clusters", col = c("cyan", 
+"blue"))
+library(cluster)
+cl <- kmeans(iris[,-5], 8)
+dis <- dist(iris[,-5])^2
+sil = silhouette (cl$cluster, dis)
+plot(sil, main = "Clustering Data with Silhoutte plot using 8 Clusters", col = c("cyan", 
+"blue", "orange", "yellow", "red", "gray", "green", "maroon"))
+install.packages("factoextra")
+library(factoextra)
+install.packages("clustertend")
+library(clustertend)
+genx<-function(x){
+ runif(length(x), min(x), (max(x)))
+}
+random_df <- apply(iris[,-5], 2, genx)
+random_df <- as.data.frame(random_df)
+iris[,-5] <- scale(iris[,-5])
+random_df <- scale(random_df)
+res <- get_clust_tendency(iris[,-5],
+ n = nrow(iris) -1 , 
+ graph = FALSE)
+res$hopkins_stat
+hopkins(iris[,-5], n = nrow(iris) -1) 
+res <- get_clust_tendency(random_df, n = nrow(random_df)-1,
+ graph = FALSE)
+res$hopkins_stat
+
+AIM: Practical of Time-series forecasting.
+data(AirPassengers)
+class(AirPassengers)
+start(AirPassengers) 
+end(AirPassengers)
+frequency(AirPassengers)
+summary(AirPassengers)
+plot(AirPassengers)
+abline(reg=lm(AirPassengers~time(AirPassengers)))
+cycle(AirPassengers)
+plot(aggregate(AirPassengers,FUN=mean))
+boxplot(AirPassengers~cycle(AirPassengers))
+acf(log(AirPassengers))
+acf(diff(log(AirPassengers)))
+(fit <- arima(log(AirPassengers), c(0, 1, 1),seasonal = list(order = c(0, 1, 1), period = 12)))
+pred <- predict(fit, n.ahead = 10*12)
+ts.plot(AirPassengers,2.718^pred$pred, log = "y", lty = c(1,3))
+
+
+AIM: Practical of Simple/Multiple Linear Regression
+
+lsfit(iris$Petal.Length, iris$Petal.Width)$coefficients
+plot(iris$Petal.Length, iris$Petal.Width, pch=21, 
+bg=c("red","green3","blue")[unclass(iris$Species)], main="Iris Data", xlab="Petal length", 
+ylab="Petal width")
+abline(lsfit(iris$Petal.Length, iris$Petal.Width)$coefficients, col="black")
+lm(Petal.Width ~ Petal.Length, data=iris)$coefficients
+plot(iris$Petal.Length, iris$Petal.Width, pch=21, 
+bg=c("red","green3","blue")[unclass(iris$Species)], main="Iris Data", xlab="Petal length", 
+ylab="Petal width")
+abline(lm(Petal.Width ~ Petal.Length, data=iris)$coefficients, col="black")
+summary(lm(Petal.Width ~ Petal.Length, data=iris))
+plot(iris$Sepal.Width, iris$Sepal.Length, pch=21, 
+bg=c("red","green3","blue")[unclass(iris$Species)], main="Iris Data", xlab="Sepal Width", 
+ylab="Sepal Length")
+abline(lm(Sepal.Length ~ Sepal.Width, data=iris)$coefficients, col="black")
+summary(lm(Sepal.Length ~ Sepal.Width, data=iris))
+plot(iris$Sepal.Width, iris$Sepal.Length, pch=21, 
+bg=c("red","green3","blue")[unclass(iris$Species)], main="Iris Data", xlab="Petal length", 
+ylab="Sepal length")
+abline(lm(Sepal.Length ~ Sepal.Width, data=iris)$coefficients, col="black")
+abline(lm(Sepal.Length ~ Sepal.Width, 
+data=iris[which(iris$Species=="setosa"),])$coefficients, col="red")
+abline(lm(Sepal.Length ~ Sepal.Width, 
+data=iris[which(iris$Species=="versicolor"),])$coefficients, col="green3")
+abline(lm(Sepal.Length ~ Sepal.Width, 
+data=iris[which(iris$Species=="virginica"),])$coefficients, col="blue")
+lm(Sepal.Length ~ Sepal.Width, data=iris[which(iris$Species=="setosa"),])$coefficients
+lm(Sepal.Length ~ Sepal.Width, data=iris[which(iris$Species=="versicolor"),])$coefficients
+lm(Sepal.Length ~ Sepal.Width, data=iris[which(iris$Species=="virginica"),])$coefficients
+lm(Sepal.Length ~ Sepal.Width:Species + Species - 1, data=iris)$coefficients
+summary(lm(Sepal.Length ~ Sepal.Width:Species + Species - 1, data=iris))
+summary(step(lm(Sepal.Length ~ Sepal.Width * Species, data=iris)))
+lm(Sepal.Length ~ Sepal.Width:Species + Species - 1, data=iris)$coefficients
+lm(Sepal.Length ~ Sepal.Width:Species + Species, data=iris)$coefficients
+
+
+AIM: Practical of Logistics Regression.
+library(datasets)
+ir_data<- iris
+head(ir_data)
+str(ir_data)
+levels(ir_data$Species)
+sum(is.na(ir_data))
+ir_data<-ir_data[1:100,]
+set.seed(100)
+samp<-sample(1:100,80)
+ir_test<-ir_data[samp,]
+ir_ctrl<-ir_data[-samp,]
+install.packages("ggplot2")
+library(ggplot2)
+install.packages("GGally")
+library(GGally)
+ggpairs(ir_test)
+y<-ir_test$Species; x<-ir_test$Sepal.Length
+glfit<-glm(y~x, family = 'binomial')
+summary(glfit)
+newdata<- data.frame(x=ir_ctrl$Sepal.Length)
+predicted_val<-predict(glfit, newdata, type="response")
+prediction<-data.frame(ir_ctrl$Sepal.Length, ir_ctrl$Species,predicted_val)
+prediction
+qplot(prediction[,1], round(prediction[,3]), col=prediction[,2], xlab = 'Sepal Length', ylab
+ = 'Prediction using Logistic Reg.')
+
+
+AIM: Practical of Hypothesis testing.
+x= c(6.2, 6.6, 7.1, 7.4, 7.6, 7.9, 8, 8.3, 8.4, 8.5, 8.6,
+ 8.8, 8.8, 9.1, 9.2, 9.4, 9.4, 9.7, 9.9, 10.2, 10.4, 10.8,
+ 11.3, 11.9) 
+t.test(x-9,alternative="two.sided",conf.level=0.95)
+x=c(418,421,421,422,425,427,431,434,437,439,446,447,448,453,454,463,465) 
+y=c(429,430,430,431,36,437,440,441,445,446,447)
+test2<-t.test(x,y,alternative="two.sided",mu=0,var.equal=F,conf.level=0.95)
+test2
+
+
+AIM: Practical of Analysis of Variance.
+y1 = c(18.2, 20.1, 17.6, 16.8, 18.8, 19.7, 19.1)
+y2 = c(17.4, 18.7, 19.1, 16.4, 15.9, 18.4, 17.7)
+y3 = c(15.2, 18.8, 17.7, 16.5, 15.9, 17.1, 16.7)
+y = c(y1, y2, y3)
+n = rep(7, 3)
+n
+group = rep(1:3, n)
+group
+tmp = tapply(y, group, stem)
+stem(y)
+tmpfn = function(x) c(sum = sum(x), mean = mean(x), var = var(x),
+ n = length(x))
+tapply(y, group, tmpfn)
+tmpfn(y)
+data = data.frame(y = y, group = factor(group))
+fit = lm(y ~ group, data)
+anova(fit)
+df = anova(fit)[, "Df"]
+names(df) = c("trt", "err")
+df
+alpha = c(0.05, 0.01)
+qf(alpha, df["trt"], df["err"], lower.tail = FALSE)
+anova(fit)["Residuals", "Sum Sq"]
+anova(fit)["Residuals", "Sum Sq"]/qchisq(c(0.025, 0.975), 18,
+ lower.tail = FALSE)
+
+AIM: Practical of Decision Tree.
+mydata<-data.frame(iris)
+attach(mydata)
+install.packages("rpart")
+library(rpart)
+model<-rpart(Species ~ Sepal.Length + Sepal.Width + Petal.Length + Petal.Width,
+ data=mydata,
+ method="class")
+plot(model)
+text(model,use.n=TRUE,all=TRUE,cex=0.8)
+install.packages("tree")
+library(tree)
+model1<-tree(Species ~ Sepal.Length + Sepal.Width + Petal.Length + Petal.Width,
+ data=mydata,
+ method="class",
+ split="gini")
+plot(model1)
+text(model1,all=TRUE,cex=0.6)
+install.packages("party")
+library(party)
+model2<-ctree(Species ~ Sepal.Length + Sepal.Width + Petal.Length + Petal.Width,
+ data=mydata)
+plot(model2)
+library(tree)
+mydata<-data.frame(iris)
+attach(mydata)
+model1<-tree(Species ~ Sepal.Length + Sepal.Width + Petal.Length + Petal.Width,
+ data=mydata,
+ method="class",
+ control = tree.control(nobs = 150, mincut = 10))
+plot(model1)
+text(model1,all=TRUE,cex=0.6)
+predict(model1,iris)
+model2<-ctree(Species ~ Sepal.Length + Sepal.Width + Petal.Length + Petal.Width,
+ data = mydata, controls = ctree_control(maxdepth=2))
+plot(model2)
+
+
+1. How to open MongoDB?
+Path: C:/Program Files/MongoDB/Server/4.2/bin
+In 'bin' folder -> right click on 'mongo' application and select option 'Run as Administrator'.
+
+
+2. Type following command in 'mongo' application.
+
+
+3. MongoDB Check Current database:
+db
+
+
+4. MongoDB Display list of databases:
+show dbs
+
+
+5. MongoDB Create database:
+use tycs
+
+
+6. MongoDB Create collection:
+db.createCollection(sem6)
+	OR
+db.sem6.insert({no:1, name:"tycs1", grade:"O", age:20})
+
+
+7. To check whether the collection is created successfully or not
+show collections
+
+
+8. MongoDB Insert Document:
+db.sem6.insert({no:2, name:"tycs2", grade:"A", age:21})
+
+
+9. Insert Multiple Documents in collection:
+a.   var students = 
+      [
+      {no:3, name:"tycs3", grade:"B", age:20},
+      {no:4, name:"tycs4", grade:"O", age:19},
+      {no:5, name:"tycs5", grade:"A", age:21},
+      ];
+
+b.   db.sem6.insert(students);
+
+
+10. MongoDB Query Document: "find()" 
+db.sem6.find()
+	OR
+db.sem6.find().forEach(printjson);
+	OR
+db.sem6.find().pretty()
+
+
+11. MongoDB Query Document: "Based on Criteria" -> Equality Criteria:
+db.sem6.find({name:"tycs3"}).pretty()
+	OR
+db.sem6.find({grade:"A"}).pretty()
+
+
+12. MongoDB Query Document: "Based on Criteria" -> Greater than Criteria:
+db.sem6.find({"age":{$gt:20}}).pretty()
+	OR
+db.sem6.find({"no":{$gt:3}}).pretty()
+
+
+13. MongoDB Query Document: "Based on Criteria" -> Less than Criteria:
+db.sem6.find({"age":{$lt:20}}).pretty()
+	OR
+db.sem6.find({"no":{$lt:3}}).pretty()
+
+
+14. MongoDB Query Document: "Based on Criteria" -> Not Equals Criteria:
+db.sem6.find({"age":{$ne:21}}).pretty()
+	OR
+db.sem6.find({"no":{$ne:4}}).pretty()
+
+
+15. MongoDB Update Document:
+a.   db.sem6.update({"name":"tycs1"},{$set:{"name":"BNB"}})
+b.   db.sem6.find().pretty()
+
+
+16. MongoDB Projection:
+db.sem6.find({},{"_id":0, "no":1})
+
+
+17. limit() method in MongoDB:
+db.sem6.find().limit(1).pretty()
+
+
+18. skip() method in MongoDB:
+db.sem6.find().limit(1).skip(1).pretty()
+
+
+19. Sorting of Documents in MongoDB:
+(Note ---> 1 is for ascending order and -1 is for descending order. The default value is 1.)
+
+a.   db.sem6.find({}, {"age":1, "_id":0}).sort({"age":1})
+b.   db.sem6.find({}, {"age":1, "_id":0}).sort({"age": -1})
+
+
+20. Delete document in MongoDB: Remove Specific Document
+a.   db.sem6.remove({"no":2})
+b.   db.sem6.find().pretty()
+
+
+21. Remove all the documents from a collection but does not want to remove the collection itself :
+db.sem6.remove({})
+
+
+22. MongoDB Drop collection:
+a.   db.sem6.drop()
+b.   show collecions
+
+
+23. MongoDB Drop Database:
+a.   db.dropDatabase()
+b.   show dbs
+
